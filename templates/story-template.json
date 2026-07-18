@@ -1,0 +1,22 @@
+{
+  "composition_id": "good-deed-story",
+  "title": "暖心小故事",
+  "width": 720,
+  "height": 960,
+  "fps": 30,
+  "duration": 40,
+  "captions_enabled": true,
+  "caption_font_size": 30,
+  "bgm": "assets/audio/bgm.mp3",
+  "bgm_volume": 0.38,
+  "scenes": [
+    {"id":"scene-1","duration":5,"caption_lines":["第一幕故事文字"],"line_image":"assets/images/scene-01-line.png","color_image":"assets/images/scene-01-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-2","duration":5,"caption_lines":["第二幕故事文字"],"line_image":"assets/images/scene-02-line.png","color_image":"assets/images/scene-02-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-3","duration":5,"caption_lines":["第三幕故事文字"],"line_image":"assets/images/scene-03-line.png","color_image":"assets/images/scene-03-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-4","duration":5,"caption_lines":["第四幕故事文字"],"line_image":"assets/images/scene-04-line.png","color_image":"assets/images/scene-04-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-5","duration":5,"caption_lines":["第五幕故事文字"],"line_image":"assets/images/scene-05-line.png","color_image":"assets/images/scene-05-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-6","duration":5,"caption_lines":["第六幕故事文字"],"line_image":"assets/images/scene-06-line.png","color_image":"assets/images/scene-06-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-7","duration":5,"caption_lines":["第七幕故事文字"],"line_image":"assets/images/scene-07-line.png","color_image":"assets/images/scene-07-color.png","crop":{"scale":1,"x":0,"y":0}},
+    {"id":"scene-8","duration":5,"caption_lines":["第八幕故事文字"],"line_image":"assets/images/scene-08-line.png","color_image":"assets/images/scene-08-color.png","crop":{"scale":1,"x":0,"y":0}}
+  ]
+}

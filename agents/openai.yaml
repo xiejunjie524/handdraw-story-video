@@ -1,0 +1,4 @@
+interface:
+  display_name: "40 秒手绘暖心故事"
+  short_description: "制作线稿渐显、低饱和逐步上色的暖心短视频"
+  default_prompt: "Use $handdraw-good-deed-story to create a 40-second hand-drawn warm story video."

@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / HyperFrames
+node_modules/
+.hyperframes/
+.tmp/
+dist/
+renders/
+snapshots/
+
+# Generated and private media
+assets/images/*
+assets/audio/*
+!assets/images/.gitkeep
+!assets/audio/.gitkeep
+*.mp4
+*.mov
+*.m4a
+*.mp3
+*.wav
+
+# Credentials and local configuration
+.env
+.env.*
+*.key
+*.pem
+wisart.env
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
