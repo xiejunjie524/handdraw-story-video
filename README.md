@@ -4,7 +4,7 @@
 
 ![“凌晨四点的豆浆”示例预览](examples/soy-milk-at-4am/preview.jpg)
 
-新手直接看：[中文使用方法](docs/usage.md)
+新手直接看：[中文使用方法](docs/usage.md) · [生图模型接入](docs/image-generation.md)
 
 ## 特点
 
