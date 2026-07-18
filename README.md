@@ -4,6 +4,8 @@
 
 ![“凌晨四点的豆浆”示例预览](examples/soy-milk-at-4am/preview.jpg)
 
+新手直接看：[中文使用方法](docs/usage.md)
+
 ## 特点
 
 - 默认 40 秒、720×960、30 fps，适合竖屏平台
