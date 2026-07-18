@@ -24,7 +24,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/YOUR_NAME/handdraw-story-video.git
+git clone https://github.com/xiejunjie524/handdraw-story-video.git
 cd handdraw-story-video
 python -m venv .venv
 # Windows: .venv\Scripts\activate
