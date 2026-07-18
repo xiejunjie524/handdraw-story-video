@@ -26,6 +26,8 @@ assets/audio/*
 # Credentials and local configuration
 .env
 .env.*
+config.local.json
+*.local.json
 *.key
 *.pem
 wisart.env

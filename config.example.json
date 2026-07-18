@@ -1,0 +1,17 @@
+{
+  "image": {
+    "base_url": "https://your-image-provider.example/v1",
+    "api_key_env": "IMAGE_API_KEY",
+    "model": "your-image-model",
+    "size": "1024x1024",
+    "reference_images": []
+  },
+  "story": {
+    "base_url": "",
+    "api_key_env": "TEXT_API_KEY",
+    "model": "",
+    "language": "zh-CN"
+  },
+  "style_prompt_file": "templates/style-prompt.txt",
+  "bgm": ""
+}

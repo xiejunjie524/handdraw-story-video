@@ -34,6 +34,37 @@ Copy-Item node_modules\gsap\dist\gsap.min.js hyperframes\assets\vendor\gsap.min.
 
 不要把 API 密钥、浏览器数据、下载的版权音乐或以前的 MP4 成片放进 Git 仓库。
 
+## 一键按主题生成
+
+复制模型配置模板到本地文件，并按你自己的供应商填写地址、模型名和环境变量名：
+
+~~~
+Copy-Item config.example.json config.local.json
+~~~
+
+设置图像模型密钥后，可以直接输入主题生成 8 幕工程：
+
+~~~
+$env:IMAGE_API_KEY = "你的图像模型密钥"
+python scripts/one_click.py --topic "凌晨四点的豆浆" --config config.local.json --output runs/soy-milk
+~~~
+
+如果配置了可选的文本模型，脚本会先自动生成 8 幕故事；没有文本模型时，会使用内置的八幕因果骨架。每幕只请求一次彩色图，然后从同一张图本地提取线稿。
+
+先验证故事配置和提示词、不调用图像模型：
+
+~~~
+python scripts/one_click.py --topic "楼下的流浪猫" --config config.local.json --output runs/dry-run --dry-run
+~~~
+
+确认素材和 HyperFrames 已安装后，追加 --render 可直接输出：
+
+~~~
+python scripts/one_click.py --topic "凌晨四点的豆浆" --config config.local.json --output runs/soy-milk --render
+~~~
+
+输出目录会包含 story.json、每幕提示词、hyperframes/index.html、彩色母图、线稿，以及启用 --render 后的 story.mp4。默认不自动重试生图，也不会覆盖已有输出目录。
+
 ## 3. 创建故事配置
 
 复制模板：

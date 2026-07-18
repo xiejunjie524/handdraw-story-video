@@ -6,6 +6,8 @@
 
 新手直接看：[中文使用方法](docs/usage.md) · [生图模型接入](docs/image-generation.md) · [固定画风提示词](docs/prompts.md)
 
+想直接按主题批量生成：[一键成片配置](config.example.json)
+
 ## 特点
 
 - 默认 40 秒、720×960、30 fps，适合竖屏平台
