@@ -9,10 +9,17 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import requests
 
+
+ATLASCLOUD_MEDIA_BASE_URL = "https://api.atlascloud.ai/api/v1"
+ATLASCLOUD_LLM_BASE_URL = "https://api.atlascloud.ai/v1"
+ATLASCLOUD_IMAGE_MODEL = "bytedance/seedream-v5.0-lite"
+ATLASCLOUD_STORY_MODEL = "qwen/qwen3.5-flash"
+ATLASCLOUD_API_KEY_ENVS = ("ATLASCLOUD_API_KEY", "ATLAS_CLOUD_API_KEY")
 
 BEATS = [
     ("建立问题", "在日常地点建立一个具体的小困难，主角和受影响者同时出现。"),
@@ -44,12 +51,60 @@ def endpoint(base_url: str, path: str) -> str:
     return f"{base_url.rstrip('/')}/{path.lstrip('/')}"
 
 
-def api_key(config: dict) -> str:
-    env_name = str(config.get("api_key_env", "IMAGE_API_KEY"))
-    value = os.environ.get(env_name, "")
-    if not value:
-        fail(f"environment variable {env_name} is not set")
-    return value
+def provider_name(config: dict) -> str:
+    return str(config.get("provider", "")).strip().lower().replace("_", "-")
+
+
+def is_atlascloud(config: dict) -> bool:
+    return provider_name(config) in {"atlas", "atlascloud", "atlas-cloud"}
+
+
+def env_names(config: dict, default_names: tuple[str, ...]) -> list[str]:
+    raw = config.get("api_key_env")
+    if isinstance(raw, list):
+        names = [str(name).strip() for name in raw if str(name).strip()]
+    elif raw:
+        names = [str(raw).strip()]
+    else:
+        names = list(default_names)
+
+    aliases = config.get("api_key_env_aliases", [])
+    if isinstance(aliases, str):
+        aliases = [aliases]
+    names.extend(str(name).strip() for name in aliases if str(name).strip())
+    return list(dict.fromkeys(names))
+
+
+def api_key(config: dict, default_names: tuple[str, ...] = ("IMAGE_API_KEY",)) -> str:
+    names = env_names(config, default_names)
+    for env_name in names:
+        value = os.environ.get(env_name, "")
+        if value:
+            return value
+    fail("none of these environment variables are set: " + ", ".join(names))
+
+
+def resolved_image_config(config: dict) -> dict:
+    resolved = dict(config)
+    if is_atlascloud(resolved):
+        resolved.setdefault("base_url", ATLASCLOUD_MEDIA_BASE_URL)
+        resolved.setdefault("api_key_env", ATLASCLOUD_API_KEY_ENVS[0])
+        resolved.setdefault("api_key_env_aliases", [ATLASCLOUD_API_KEY_ENVS[1]])
+        resolved.setdefault("model", ATLASCLOUD_IMAGE_MODEL)
+        resolved.setdefault("size", "1024x1024")
+        resolved.setdefault("poll_interval", 3)
+        resolved.setdefault("poll_timeout", 300)
+    return resolved
+
+
+def resolved_story_config(config: dict) -> dict:
+    resolved = dict(config)
+    if is_atlascloud(resolved):
+        resolved.setdefault("base_url", ATLASCLOUD_LLM_BASE_URL)
+        resolved.setdefault("api_key_env", ATLASCLOUD_API_KEY_ENVS[0])
+        resolved.setdefault("api_key_env_aliases", [ATLASCLOUD_API_KEY_ENVS[1]])
+        resolved.setdefault("model", ATLASCLOUD_STORY_MODEL)
+    return resolved
 
 
 def strip_json_fence(text: str) -> str:
@@ -86,12 +141,13 @@ def fallback_scenes(topic: str) -> list[dict]:
 
 
 def generate_story(topic: str, story_config: dict, style_prompt: str) -> list[dict]:
+    story_config = resolved_story_config(story_config)
     base_url = str(story_config.get("base_url", "")).strip()
     model = str(story_config.get("model", "")).strip()
     if not base_url or not model:
         return fallback_scenes(topic)
 
-    key = api_key(story_config)
+    key = api_key(story_config, ATLASCLOUD_API_KEY_ENVS if is_atlascloud(story_config) else ("TEXT_API_KEY",))
     prompt = (
         "请为一个竖屏手绘暖心短视频生成严格 JSON，不要 Markdown。"
         f"主题：{topic}。需要 8 幕，每幕包含 id、duration、caption_lines、visual_prompt。"
@@ -123,7 +179,120 @@ def generate_story(topic: str, story_config: dict, style_prompt: str) -> list[di
     return scenes
 
 
-def image_request(image_config: dict, prompt: str, output_path: Path) -> None:
+def successful_payload(payload: dict, context: str) -> dict:
+    code = payload.get("code")
+    if code not in (None, 0, 200, "0", "200"):
+        fail(f"{context} failed: {json.dumps(payload, ensure_ascii=False)}")
+    return payload.get("data", payload)
+
+
+def write_image_item(item: object, output_path: Path) -> None:
+    if isinstance(item, str):
+        item = {"url": item}
+    if not isinstance(item, dict):
+        fail("image response item must be an object or URL string")
+    if item.get("b64_json"):
+        output_path.write_bytes(base64.b64decode(str(item["b64_json"])))
+        return
+    url = item.get("url") or item.get("download_url")
+    if url:
+        image_response = requests.get(str(url), timeout=300)
+        image_response.raise_for_status()
+        output_path.write_bytes(image_response.content)
+        return
+    fail("image response has neither b64_json nor url")
+
+
+def atlas_output_items(data: dict) -> list:
+    outputs = (
+        data.get("outputs")
+        or data.get("output")
+        or data.get("images")
+        or data.get("urls")
+        or data.get("result")
+    )
+    if isinstance(outputs, list):
+        return outputs
+    if outputs:
+        return [outputs]
+    return []
+
+
+def atlas_upload_reference(base_url: str, key: str, path: Path) -> str:
+    if not path.is_file():
+        fail(f"reference image not found: {path}")
+    with path.open("rb") as handle:
+        response = requests.post(
+            endpoint(base_url, "/model/uploadMedia"),
+            headers={"Authorization": f"Bearer {key}"},
+            files={"file": (path.name, handle, "image/png")},
+            timeout=120,
+        )
+    response.raise_for_status()
+    data = successful_payload(response.json(), "Atlas Cloud media upload")
+    url = data.get("download_url") or data.get("url")
+    if not url:
+        fail("Atlas Cloud media upload returned no URL")
+    return str(url)
+
+
+def atlas_image_request(image_config: dict, prompt: str, output_path: Path) -> None:
+    base_url = str(image_config.get("base_url", ATLASCLOUD_MEDIA_BASE_URL)).strip()
+    key = api_key(image_config, ATLASCLOUD_API_KEY_ENVS)
+    model = str(image_config.get("model", ATLASCLOUD_IMAGE_MODEL)).strip()
+    size = str(image_config.get("image_size") or image_config.get("size") or "1024x1024")
+    references = [Path(item) for item in image_config.get("reference_images", [])]
+
+    payload = {"model": model, "prompt": prompt, "image_size": size}
+    params = image_config.get("params", {})
+    if isinstance(params, dict):
+        payload.update(params)
+    if references and "image_url" not in payload and "image_urls" not in payload:
+        urls = [atlas_upload_reference(base_url, key, path) for path in references]
+        if len(urls) == 1:
+            payload["image_url"] = urls[0]
+        else:
+            payload["image_urls"] = urls
+    response = requests.post(
+        endpoint(base_url, "/model/generateImage"),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json=payload,
+        timeout=60,
+    )
+    response.raise_for_status()
+    data = successful_payload(response.json(), "Atlas Cloud image generation")
+    prediction_id = data.get("id") or data.get("prediction_id") or data.get("task_id")
+    if not prediction_id:
+        items = atlas_output_items(data)
+        if items:
+            write_image_item(items[0], output_path)
+            return
+        fail("Atlas Cloud image generation returned no prediction id")
+
+    deadline = time.monotonic() + float(image_config.get("poll_timeout", 300))
+    poll_interval = float(image_config.get("poll_interval", 3))
+    while time.monotonic() < deadline:
+        poll_response = requests.get(
+            endpoint(base_url, f"/model/prediction/{prediction_id}"),
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=60,
+        )
+        poll_response.raise_for_status()
+        result = successful_payload(poll_response.json(), "Atlas Cloud prediction polling")
+        status = str(result.get("status", "")).lower()
+        if status in {"completed", "succeeded", "success"}:
+            items = atlas_output_items(result)
+            if not items:
+                fail("Atlas Cloud prediction completed without output URLs")
+            write_image_item(items[0], output_path)
+            return
+        if status in {"failed", "error", "canceled", "cancelled"}:
+            fail(f"Atlas Cloud prediction {prediction_id} ended with status {status}")
+        time.sleep(poll_interval)
+    fail(f"Atlas Cloud prediction {prediction_id} timed out")
+
+
+def openai_image_request(image_config: dict, prompt: str, output_path: Path) -> None:
     base_url = str(image_config.get("base_url", "")).strip()
     if not base_url:
         fail("image.base_url is empty")
@@ -161,16 +330,15 @@ def image_request(image_config: dict, prompt: str, output_path: Path) -> None:
     data = response.json().get("data", [])
     if not data:
         fail("image provider returned no image data")
-    item = data[0]
-    if item.get("b64_json"):
-        output_path.write_bytes(base64.b64decode(item["b64_json"]))
+    write_image_item(data[0], output_path)
+
+
+def image_request(image_config: dict, prompt: str, output_path: Path) -> None:
+    image_config = resolved_image_config(image_config)
+    if is_atlascloud(image_config):
+        atlas_image_request(image_config, prompt, output_path)
         return
-    if item.get("url"):
-        image_response = requests.get(item["url"], timeout=300)
-        image_response.raise_for_status()
-        output_path.write_bytes(image_response.content)
-        return
-    fail("image response has neither b64_json nor url")
+    openai_image_request(image_config, prompt, output_path)
 
 
 def normalize_scene(scene: dict, index: int, topic: str) -> dict:

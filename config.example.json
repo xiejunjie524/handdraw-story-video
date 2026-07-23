@@ -1,14 +1,19 @@
 {
   "image": {
+    "provider": "",
     "base_url": "https://your-image-provider.example/v1",
     "api_key_env": "IMAGE_API_KEY",
+    "api_key_env_aliases": [],
     "model": "your-image-model",
     "size": "1024x1024",
-    "reference_images": []
+    "reference_images": [],
+    "params": {}
   },
   "story": {
+    "provider": "",
     "base_url": "",
     "api_key_env": "TEXT_API_KEY",
+    "api_key_env_aliases": [],
     "model": "",
     "language": "zh-CN"
   },

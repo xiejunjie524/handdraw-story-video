@@ -16,6 +16,41 @@ IMAGE_SIZE=1024x1024
 
 这些变量只是约定名称，具体客户端可以使用自己的配置文件或命令行参数。真实密钥不要写入 Git 仓库、`story.json` 或截图。
 
+## Atlas Cloud 配置
+
+`scripts/one_click.py` 可以在 `provider` 设置为 `atlascloud`、`atlas-cloud` 或 `atlas` 时直接调用 Atlas Cloud。图像生成使用 Media API 的 `generateImage` + prediction 轮询流程；可选文本故事生成使用 OpenAI-compatible chat completions。
+
+复制示例配置：
+
+```powershell
+Copy-Item config.atlascloud.example.json config.local.json
+$env:ATLASCLOUD_API_KEY = "your-api-key"
+python scripts\one_click.py --topic "楼下的流浪猫" --config config.local.json --output runs\cat-story
+```
+
+也可以使用环境变量别名：
+
+```powershell
+$env:ATLAS_CLOUD_API_KEY = "your-api-key"
+```
+
+默认图像模型是 `bytedance/seedream-v5.0-lite`，默认文本模型是 `qwen/qwen3.5-flash`。如需传入模型专属参数，可在 `image.params` 中添加，例如：
+
+```json
+{
+  "image": {
+    "provider": "atlascloud",
+    "model": "bytedance/seedream-v5.0-lite",
+    "size": "1024x1024",
+    "params": {
+      "image_size": "1024x1024"
+    }
+  }
+}
+```
+
+如果 `reference_images` 中配置了本地参考图，脚本会先通过 Atlas Cloud `uploadMedia` 上传，再把返回 URL 传给图像生成请求。单张图使用 `image_url`，多张图使用 `image_urls`；若 `image.params` 已显式提供这些字段，则以 `image.params` 为准。
+
 ## 生图要求
 
 每一幕先生成一张完整的低饱和彩铅彩色图，推荐 1K：
