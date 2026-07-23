@@ -1,0 +1,21 @@
+{
+  "image": {
+    "provider": "atlascloud",
+    "api_key_env": "ATLASCLOUD_API_KEY",
+    "api_key_env_aliases": ["ATLAS_CLOUD_API_KEY"],
+    "model": "bytedance/seedream-v5.0-lite",
+    "size": "1024x1024",
+    "poll_interval": 3,
+    "poll_timeout": 300,
+    "params": {}
+  },
+  "story": {
+    "provider": "atlascloud",
+    "api_key_env": "ATLASCLOUD_API_KEY",
+    "api_key_env_aliases": ["ATLAS_CLOUD_API_KEY"],
+    "model": "qwen/qwen3.5-flash",
+    "language": "zh-CN"
+  },
+  "style_prompt_file": "templates/style-prompt.txt",
+  "bgm": ""
+}
